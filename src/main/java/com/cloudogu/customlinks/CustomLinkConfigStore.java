@@ -23,12 +23,17 @@
  */
 package com.cloudogu.customlinks;
 
+import com.google.common.annotations.VisibleForTesting;
+import sonia.scm.store.ConfigurationEntryStore;
 import sonia.scm.store.ConfigurationEntryStoreFactory;
 
 import javax.inject.Inject;
-import java.util.Map;
+import java.util.Collection;
 
 public class CustomLinkConfigStore {
+
+  @VisibleForTesting
+  public static final String STORE_NAME = "custom-links";
 
   private final ConfigurationEntryStoreFactory configurationEntryStoreFactory;
 
@@ -37,15 +42,21 @@ public class CustomLinkConfigStore {
     this.configurationEntryStoreFactory = configurationEntryStoreFactory;
   }
 
-  public Map<String, String> getAllLinks() {
-    return null;
+  public Collection<CustomLink> getAllLinks() {
+    return getStore().getAll().values();
   }
 
   public void addLink(String name, String url) {
-
+    //TODO Manage links permission
+    getStore().put(name, new CustomLink(name, url));
   }
 
   public void removeLink(String name) {
+    //TODO Manage links permission
+    getStore().remove(name);
+  }
 
+  private ConfigurationEntryStore<CustomLink> getStore() {
+    return configurationEntryStoreFactory.withType(CustomLink.class).withName(STORE_NAME).build();
   }
 }
