@@ -1,5 +1,12 @@
 {
   "scm-custom-links-plugin": {
-
+  },
+  "permissions": {
+    "configuration": {
+      "manageCustomLinks": {
+        "displayName": "May manage custom links",
+        "description": "May add and remove the custom links"
+      }
+    }
   }
 }

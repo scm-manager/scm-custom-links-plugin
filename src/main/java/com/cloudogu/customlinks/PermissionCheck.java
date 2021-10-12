@@ -23,40 +23,20 @@
  */
 package com.cloudogu.customlinks;
 
-import com.google.common.annotations.VisibleForTesting;
-import sonia.scm.store.ConfigurationEntryStore;
-import sonia.scm.store.ConfigurationEntryStoreFactory;
+import sonia.scm.config.ConfigurationPermissions;
 
-import javax.inject.Inject;
-import java.util.Collection;
+public class PermissionCheck {
 
-public class CustomLinkConfigStore {
+  private static final String MANAGE_CUSTOM_LINKS = "manageCustomLinks";
 
-  @VisibleForTesting
-  public static final String STORE_NAME = "custom-links";
-
-  private final ConfigurationEntryStoreFactory configurationEntryStoreFactory;
-
-  @Inject
-  public CustomLinkConfigStore(ConfigurationEntryStoreFactory configurationEntryStoreFactory) {
-    this.configurationEntryStoreFactory = configurationEntryStoreFactory;
+  private PermissionCheck() {
   }
 
-  public Collection<CustomLink> getAllLinks() {
-    return getStore().getAll().values();
+  public static boolean mayManageCustomLinks() {
+    return ConfigurationPermissions.custom(MANAGE_CUSTOM_LINKS).isPermitted();
   }
 
-  public void addLink(String name, String url) {
-    PermissionCheck.checkManageCustomLinks();
-    getStore().put(name, new CustomLink(name, url));
-  }
-
-  public void removeLink(String name) {
-    PermissionCheck.checkManageCustomLinks();
-    getStore().remove(name);
-  }
-
-  private ConfigurationEntryStore<CustomLink> getStore() {
-    return configurationEntryStoreFactory.withType(CustomLink.class).withName(STORE_NAME).build();
+  public static void checkManageCustomLinks() {
+    ConfigurationPermissions.custom(MANAGE_CUSTOM_LINKS).check();
   }
 }

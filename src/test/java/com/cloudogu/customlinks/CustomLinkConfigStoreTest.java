@@ -23,15 +23,23 @@
  */
 package com.cloudogu.customlinks;
 
+import org.apache.shiro.authz.AuthorizationException;
+import org.github.sdorra.jse.ShiroExtension;
+import org.github.sdorra.jse.SubjectAware;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import sonia.scm.store.InMemoryConfigurationEntryStoreFactory;
+
 
 import java.util.Collection;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@ExtendWith(ShiroExtension.class)
 class CustomLinkConfigStoreTest {
 
   private CustomLinkConfigStore configStore;
@@ -42,40 +50,50 @@ class CustomLinkConfigStoreTest {
   }
 
   @Test
-  void shouldAddLink() {
-    configStore.addLink("SCM-Manager", "https://scm-manager.org/");
-
-    assertThat(configStore.getAllLinks()).hasSize(1);
-    CustomLink customLink = configStore.getAllLinks().iterator().next();
-    assertThat(customLink.getName()).isEqualTo("SCM-Manager");
-    assertThat(customLink.getUrl()).isEqualTo("https://scm-manager.org/");
+  void shouldThrowAuthorizationExceptionIfNotPermittedToManageCustomLinks() {
+    assertThrows(AuthorizationException.class, () -> configStore.addLink("SCM-Manager", "https://scm-manager.org/"));
+    assertThrows(AuthorizationException.class, () -> configStore.removeLink("SCM-Manager"));
   }
 
-  @Test
-  void shouldRemoveLink() {
-    configStore.addLink("SCM-Manager", "https://scm-manager.org/");
-    assertThat(configStore.getAllLinks()).hasSize(1);
+  @SubjectAware(value = "trillian", permissions = "configuration:manageCustomLinks")
+  @Nested
+  class WithPermission {
+    @Test
+    void shouldAddLink() {
+      configStore.addLink("SCM-Manager", "https://scm-manager.org/");
 
-    configStore.removeLink("SCM-Manager");
-    assertThat(configStore.getAllLinks()).isEmpty();
-  }
+      assertThat(configStore.getAllLinks()).hasSize(1);
+      CustomLink customLink = configStore.getAllLinks().iterator().next();
+      assertThat(customLink.getName()).isEqualTo("SCM-Manager");
+      assertThat(customLink.getUrl()).isEqualTo("https://scm-manager.org/");
+    }
 
-  @Test
-  void shouldDoNothingIfToBeRemovedLinkDoesNotExist() {
-    configStore.addLink("test", "some-link.url");
-    configStore.removeLink("SCM-Manager");
+    @Test
+    void shouldRemoveLink() {
+      configStore.addLink("SCM-Manager", "https://scm-manager.org/");
+      assertThat(configStore.getAllLinks()).hasSize(1);
 
-    assertThat(configStore.getAllLinks()).hasSize(1);
-  }
+      configStore.removeLink("SCM-Manager");
+      assertThat(configStore.getAllLinks()).isEmpty();
+    }
 
-  @Test
-  void shouldGetAllLinks() {
-    configStore.addLink("SCM-Manager", "https://scm-manager.org/");
-    configStore.addLink("SCM-Manager Community", "https://community.cloudogu.com/");
+    @Test
+    void shouldDoNothingIfToBeRemovedLinkDoesNotExist() {
+      configStore.addLink("test", "some-link.url");
+      configStore.removeLink("SCM-Manager");
 
-    Collection<CustomLink> links = configStore.getAllLinks();
-    assertThat(links).hasSize(2);
-    assertThat(links.stream().map(CustomLink::getUrl).collect(Collectors.toList()))
-      .contains("https://community.cloudogu.com/", "https://scm-manager.org/");
+      assertThat(configStore.getAllLinks()).hasSize(1);
+    }
+
+    @Test
+    void shouldGetAllLinks() {
+      configStore.addLink("SCM-Manager", "https://scm-manager.org/");
+      configStore.addLink("SCM-Manager Community", "https://community.cloudogu.com/");
+
+      Collection<CustomLink> links = configStore.getAllLinks();
+      assertThat(links).hasSize(2);
+      assertThat(links.stream().map(CustomLink::getUrl).collect(Collectors.toList()))
+        .contains("https://community.cloudogu.com/", "https://scm-manager.org/");
+    }
   }
 }

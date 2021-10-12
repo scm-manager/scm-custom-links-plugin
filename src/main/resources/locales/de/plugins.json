@@ -1,5 +1,12 @@
 {
   "scm-custom-links-plugin": {
-
+  },
+  "permissions": {
+    "configuration": {
+      "manageCustomLinks": {
+        "displayName": "Darf benutzerdefinierte Links verwalten",
+        "description": "Darf die benutzerdefinierten Links ändern"
+      }
+    }
   }
 }
