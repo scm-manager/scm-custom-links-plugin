@@ -21,21 +21,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 package com.cloudogu.customlinks;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import sonia.scm.api.v2.resources.Enrich;
+import sonia.scm.api.v2.resources.HalAppender;
+import sonia.scm.api.v2.resources.HalEnricher;
+import sonia.scm.api.v2.resources.HalEnricherContext;
+import sonia.scm.api.v2.resources.Index;
+import sonia.scm.api.v2.resources.ScmPathInfoStore;
+import sonia.scm.plugin.Extension;
 
-@Path("v2/sample")
-class SampleResource {
+import javax.inject.Inject;
+import javax.inject.Provider;
 
-  @GET
-  @Produces(MediaType.TEXT_PLAIN)
-  public String sample() {
-    return "Sample";
+@Extension
+@Enrich(Index.class)
+public class IndexLinkEnricher implements HalEnricher {
+
+  private final Provider<ScmPathInfoStore> scmPathInfoStore;
+
+  @Inject
+  public IndexLinkEnricher(Provider<ScmPathInfoStore> scmPathInfoStore) {
+    this.scmPathInfoStore = scmPathInfoStore;
   }
 
+  @Override
+  public void enrich(HalEnricherContext context, HalAppender appender) {
+    String link = new RestAPI(scmPathInfoStore.get().get().getApiRestUri()).customLinks().getAllCustomLinks().asString();
+    appender.appendLink("customLinks", link);
+  }
 }

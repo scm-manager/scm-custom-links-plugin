@@ -23,43 +23,40 @@
  */
 package com.cloudogu.customlinks;
 
-import com.cloudogu.conveyor.GenerateDto;
-import com.cloudogu.conveyor.Include;
-import com.cloudogu.jaxrstie.GenerateLinkBuilder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import sonia.scm.api.v2.resources.HalAppender;
+import sonia.scm.api.v2.resources.HalEnricherContext;
+import sonia.scm.api.v2.resources.ScmPathInfoStore;
+import sonia.scm.web.MockScmPathInfoStore;
 
-import javax.validation.constraints.NotEmpty;
+import javax.inject.Provider;
 
-@GenerateDto
-@GenerateLinkBuilder(className = "RestAPI")
-public class CustomLink {
-  @Include
-  @NotEmpty
-  private String name;
-  @Include
-  @NotEmpty
-  private String url;
+import static org.mockito.Mockito.verify;
 
-  CustomLink() {
+@ExtendWith(MockitoExtension.class)
+class IndexLinkEnricherTest {
+
+  private final Provider<ScmPathInfoStore> scmPathInfoStore = MockScmPathInfoStore.forUri("/");
+  @Mock
+  private HalAppender appender;
+
+  private IndexLinkEnricher enricher;
+
+  @BeforeEach
+  void createEnricher() {
+    enricher = new IndexLinkEnricher(scmPathInfoStore);
   }
 
-  public CustomLink(String name, String url) {
-    this.name = name;
-    this.url = url;
-  }
+  @Test
+  void shouldAppendCustomLinksLink() {
+    HalEnricherContext context = HalEnricherContext.of();
 
-  public String getName() {
-    return name;
-  }
+    enricher.enrich(context, appender);
 
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public void setUrl(String url) {
-    this.url = url;
+    verify(appender).appendLink("customLinks", "/v2/custom-links");
   }
 }
