@@ -23,6 +23,8 @@
  */
 package com.cloudogu.customlinks;
 
+import org.github.sdorra.jse.ShiroExtension;
+import org.github.sdorra.jse.SubjectAware;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,9 +37,11 @@ import sonia.scm.web.MockScmPathInfoStore;
 
 import javax.inject.Provider;
 
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, ShiroExtension.class})
+@SubjectAware(value = "trillian")
 class IndexLinkEnricherTest {
 
   private final Provider<ScmPathInfoStore> scmPathInfoStore = MockScmPathInfoStore.forUri("/");
@@ -58,5 +62,17 @@ class IndexLinkEnricherTest {
     enricher.enrich(context, appender);
 
     verify(appender).appendLink("customLinks", "/v2/custom-links");
+    verify(appender, never()).appendLink("customLinksConfig", "/v2/custom-links");
+  }
+
+  @Test
+  @SubjectAware(permissions = "configuration:manageCustomLinks")
+  void shouldAppendCustomLinksConfigLink() {
+    HalEnricherContext context = HalEnricherContext.of();
+
+    enricher.enrich(context, appender);
+
+    verify(appender).appendLink("customLinks", "/v2/custom-links");
+    verify(appender).appendLink("customLinksConfig", "/v2/custom-links");
   }
 }
