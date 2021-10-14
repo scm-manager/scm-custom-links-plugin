@@ -22,16 +22,33 @@
  * SOFTWARE.
  */
 
-import { ConfigurationBinder as configurationBinder } from "@scm-manager/ui-components";
-import { binder } from "@scm-manager/ui-extensions";
-import GlobalConfig from "./GlobalConfig";
-import CustomLinksRenderer from "./CustomLinksRenderer";
+import { Link, Links } from "@scm-manager/ui-types";
+import React, { FC } from "react";
+import { useCustomLinks } from "./useCustomLinks";
+import { CustomLink } from "./GlobalConfig";
 
-configurationBinder.bindGlobal(
-  "/custom-links",
-  "scm-custom-links-plugin.settings.navLink",
-  "customLinksConfig",
-  GlobalConfig
-);
+type Props = {
+  links: Links;
+};
 
-binder.bind("footer.information", CustomLinksRenderer)
+const CustomLinksRenderer: FC<Props> = ({ links }) => {
+  const { data, isLoading } = useCustomLinks((links.customLinks as Link).href);
+
+  if (isLoading) {
+    return null;
+  }
+
+  return (
+    <>
+      {(data?._embedded?.customLinks as CustomLink[]).map(cl => (
+        <li>
+          <a href={cl.url} target="_blank">
+            {cl.name}
+          </a>
+        </li>
+      ))}
+    </>
+  );
+};
+
+export default CustomLinksRenderer;
