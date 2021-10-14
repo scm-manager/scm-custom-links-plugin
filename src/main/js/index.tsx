@@ -22,6 +22,12 @@
  * SOFTWARE.
  */
 
-import { binder } from "@scm-manager/ui-extensions";
+import { ConfigurationBinder as configurationBinder } from "@scm-manager/ui-components";
+import GlobalConfig from "./GlobalConfig";
 
-binder.bind("", "");
+configurationBinder.bindGlobal(
+  "/custom-links",
+  "scm-custom-links-plugin.settings.navLink",
+  "customLinksConfig",
+  GlobalConfig
+);

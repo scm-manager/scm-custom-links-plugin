@@ -49,5 +49,9 @@ public class IndexLinkEnricher implements HalEnricher {
   public void enrich(HalEnricherContext context, HalAppender appender) {
     String link = new RestAPI(scmPathInfoStore.get().get().getApiRestUri()).customLinks().getAllCustomLinks().asString();
     appender.appendLink("customLinks", link);
+
+    if (PermissionCheck.mayManageCustomLinks()) {
+      appender.appendLink("customLinksConfig", link);
+    }
   }
 }

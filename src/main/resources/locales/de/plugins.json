@@ -1,5 +1,26 @@
 {
   "scm-custom-links-plugin": {
+    "settings": {
+      "title": "Benutzerdefinierte Links konfigurieren",
+      "navLink": "Benutzerdefinierte Links"
+    },
+    "form": {
+      "table": {
+        "name": "Name",
+        "url": "URL",
+        "deleteLink": "Link löschen",
+        "empty": "Es wurden noch keine benutzerdefinierten Links konfiguriert."
+      },
+      "name": {
+        "label": "Name",
+        "helpText": "Anzeigename des Links"
+      },
+      "url": {
+        "label": "URL",
+        "helpText": "Zielort des Links"
+      },
+      "add": "Link hinzufügen"
+    }
   },
   "permissions": {
     "configuration": {

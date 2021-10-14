@@ -7,9 +7,8 @@
   "scripts": {
     "build": "plugin-scripts build",
     "watch": "plugin-scripts watch",
-    "test": "jest",
-    "postinstall": "plugin-scripts postinstall",
-    "typecheck": "tsc"
+    "test": "jest src/main/js --passWithNoTests",
+    "postinstall": "plugin-scripts postinstall"
   },
   "devDependencies": {
     "@scm-manager/ui-plugins": "2.24.0",

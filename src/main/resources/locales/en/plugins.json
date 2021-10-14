@@ -1,5 +1,26 @@
 {
   "scm-custom-links-plugin": {
+    "settings": {
+      "title": "Custom Links Configuration",
+      "navLink": "Custom Links"
+    },
+    "form": {
+      "table": {
+        "name": "Name",
+        "url": "URL",
+        "deleteLink": "Delete link",
+        "empty": "No custom links defined."
+      },
+      "name": {
+        "label": "Name",
+        "helpText": "Displayname of the link"
+      },
+      "url": {
+        "label": "URL",
+        "helpText": "Destination of the link"
+      },
+      "add": "Add link"
+    }
   },
   "permissions": {
     "configuration": {
