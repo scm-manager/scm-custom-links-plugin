@@ -37,6 +37,8 @@ import sonia.scm.web.MockScmPathInfoStore;
 
 import javax.inject.Provider;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -62,7 +64,7 @@ class IndexLinkEnricherTest {
     enricher.enrich(context, appender);
 
     verify(appender).appendLink("customLinks", "/v2/custom-links");
-    verify(appender, never()).appendLink("customLinksConfig", "/v2/custom-links");
+    verify(appender, never()).appendLink(eq("customLinksConfig"), any());
   }
 
   @Test

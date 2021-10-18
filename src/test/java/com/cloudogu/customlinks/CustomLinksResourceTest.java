@@ -25,6 +25,8 @@ package com.cloudogu.customlinks;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
+import org.github.sdorra.jse.ShiroExtension;
+import org.github.sdorra.jse.SubjectAware;
 import org.jboss.resteasy.mock.MockHttpRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,11 +39,11 @@ import sonia.scm.web.RestDispatcher;
 import java.net.URISyntaxException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, ShiroExtension.class})
+@SubjectAware(value = "trillian")
 class CustomLinksResourceTest {
 
   @Mock
@@ -59,7 +61,23 @@ class CustomLinksResourceTest {
   }
 
   @Test
-  void shouldGetAllLinks() throws URISyntaxException {
+  void shouldGetAllLinksWithoutManagePermission() throws URISyntaxException {
+    when(configStore.getAllLinks()).thenReturn(ImmutableList.of(new CustomLink("SCM-Manager", "https://scm-manager.org")));
+
+    MockHttpRequest request = MockHttpRequest.get("/" + CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH);
+
+    dispatcher.invoke(request, response);
+
+    assertThat(response.getStatus()).isEqualTo(200);
+    JsonNode mainNode = response.getContentAsJson();
+    assertThat(mainNode.path("_links").path("self").path("href").textValue()).isEqualTo("/v2/custom-links");
+    assertThat(mainNode.path("_embedded").path("customLinks").get(0).path("name").textValue()).isEqualTo("SCM-Manager");
+    assertThat(mainNode.path("_embedded").path("customLinks").get(0).path("url").textValue()).isEqualTo("https://scm-manager.org");
+  }
+
+  @Test
+  @SubjectAware(permissions = "configuration:manageCustomLinks")
+  void shouldGetAllLinksWithManageLinks() throws URISyntaxException {
     when(configStore.getAllLinks()).thenReturn(ImmutableList.of(new CustomLink("SCM-Manager", "https://scm-manager.org")));
 
     MockHttpRequest request = MockHttpRequest.get("/" + CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH);
@@ -86,7 +104,7 @@ class CustomLinksResourceTest {
     dispatcher.invoke(request, response);
 
     assertThat(response.getStatus()).isEqualTo(204);
-    verify(configStore, times(1)).addLink("SCM-Manager", "https://scm-manager.org/");
+    verify(configStore).addLink("SCM-Manager", "https://scm-manager.org/");
   }
 
   @Test
@@ -97,6 +115,6 @@ class CustomLinksResourceTest {
     dispatcher.invoke(request, response);
 
     assertThat(response.getStatus()).isEqualTo(204);
-    verify(configStore, times(1)).removeLink("SCM-Manager");
+    verify(configStore).removeLink("SCM-Manager");
   }
 }
