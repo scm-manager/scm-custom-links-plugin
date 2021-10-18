@@ -79,7 +79,7 @@ class CustomLinksResourceTest {
   void shouldAddLink() throws URISyntaxException {
     byte[] contentJson = ("{\"name\" : \"SCM-Manager\", \"url\" : \"https://scm-manager.org/\"}").getBytes();
 
-    MockHttpRequest request = MockHttpRequest.put("/" + CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH)
+    MockHttpRequest request = MockHttpRequest.post("/" + CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH)
       .contentType(CustomLinksResource.CUSTOM_LINKS_MEDIA_TYPE)
       .content(contentJson);
 

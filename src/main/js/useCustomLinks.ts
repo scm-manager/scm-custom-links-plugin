@@ -63,7 +63,7 @@ export const useAddCustomLink = (link: string) => {
   const queryClient = useQueryClient();
   const { mutate, isLoading, error } = useMutation<unknown, Error, CustomLink>(
     (customLink) => {
-      return apiClient.put(link, customLink, "application/vnd.scmm-custom-links+json;v=2");
+      return apiClient.post(link, customLink, "application/vnd.scmm-custom-links+json;v=2");
     },
     {
       onSuccess: () => {

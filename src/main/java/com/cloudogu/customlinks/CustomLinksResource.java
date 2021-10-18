@@ -43,7 +43,7 @@ import javax.validation.Valid;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.PUT;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -105,20 +105,26 @@ public class CustomLinksResource {
   }
 
   private Links createCollectionLinks(RestAPI restAPI) {
-    return Links.linkingTo()
-      .single(Link.link("self", restAPI.customLinks().getAllCustomLinks().asString()))
-      .single(Link.link("addLink", restAPI.customLinks().addCustomLink().asString()))
-      .build();
+    Links.Builder builder = Links.linkingTo();
+      builder.single(Link.link("self", restAPI.customLinks().getAllCustomLinks().asString()));
+      if (PermissionCheck.mayManageCustomLinks()) {
+        builder.single(Link.link("addLink", restAPI.customLinks().addCustomLink().asString()));
+      }
+
+      return builder.build();
   }
 
   private List<CustomLinkDto> mapCustomLinksToDtos(RestAPI restAPI, Collection<CustomLink> customLinks) {
     return customLinks.stream().map(customLink -> {
-      Link deleteLink = Link.link("delete", restAPI.customLinks().deleteCustomLink(customLink.getName()).asString());
-      return CustomLinkDto.from(customLink, Links.linkingTo().single(deleteLink).build());
+      Links.Builder builder = Links.linkingTo();
+      if (PermissionCheck.mayManageCustomLinks()) {
+        builder.single(Link.link("delete", restAPI.customLinks().deleteCustomLink(customLink.getName()).asString()));
+      }
+      return CustomLinkDto.from(customLink, builder.build());
     }).collect(Collectors.toList());
   }
 
-  @PUT
+  @POST
   @Path("")
   @Consumes(CUSTOM_LINKS_MEDIA_TYPE)
   @Operation(
