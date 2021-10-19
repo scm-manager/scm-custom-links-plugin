@@ -71,8 +71,10 @@ class CustomLinksResourceTest {
     assertThat(response.getStatus()).isEqualTo(200);
     JsonNode mainNode = response.getContentAsJson();
     assertThat(mainNode.path("_links").path("self").path("href").textValue()).isEqualTo("/v2/custom-links");
+    assertThat(mainNode.path("_links").path("addLink").isEmpty()).isTrue();
     assertThat(mainNode.path("_embedded").path("customLinks").get(0).path("name").textValue()).isEqualTo("SCM-Manager");
     assertThat(mainNode.path("_embedded").path("customLinks").get(0).path("url").textValue()).isEqualTo("https://scm-manager.org");
+    assertThat(mainNode.path("_embedded").path("customLinks").get(0).path("_links").path("delete").isEmpty()).isTrue();
   }
 
   @Test
