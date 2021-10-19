@@ -23,40 +23,35 @@
  */
 package com.cloudogu.customlinks;
 
-import com.google.common.annotations.VisibleForTesting;
-import sonia.scm.store.ConfigurationEntryStore;
-import sonia.scm.store.ConfigurationEntryStoreFactory;
+import sonia.scm.api.v2.resources.Enrich;
+import sonia.scm.api.v2.resources.HalAppender;
+import sonia.scm.api.v2.resources.HalEnricher;
+import sonia.scm.api.v2.resources.HalEnricherContext;
+import sonia.scm.api.v2.resources.Index;
+import sonia.scm.api.v2.resources.ScmPathInfoStore;
+import sonia.scm.plugin.Extension;
 
 import javax.inject.Inject;
-import java.util.Collection;
+import javax.inject.Provider;
 
-public class CustomLinkConfigStore {
+@Extension
+@Enrich(Index.class)
+public class IndexLinkEnricher implements HalEnricher {
 
-  @VisibleForTesting
-  public static final String STORE_NAME = "custom-links";
-
-  private final ConfigurationEntryStoreFactory configurationEntryStoreFactory;
+  private final Provider<ScmPathInfoStore> scmPathInfoStore;
 
   @Inject
-  public CustomLinkConfigStore(ConfigurationEntryStoreFactory configurationEntryStoreFactory) {
-    this.configurationEntryStoreFactory = configurationEntryStoreFactory;
+  public IndexLinkEnricher(Provider<ScmPathInfoStore> scmPathInfoStore) {
+    this.scmPathInfoStore = scmPathInfoStore;
   }
 
-  public Collection<CustomLink> getAllLinks() {
-    return getStore().getAll().values();
-  }
+  @Override
+  public void enrich(HalEnricherContext context, HalAppender appender) {
+    String link = new RestAPI(scmPathInfoStore.get().get().getApiRestUri()).customLinks().getAllCustomLinks().asString();
+    appender.appendLink("customLinks", link);
 
-  public void addLink(String name, String url) {
-    PermissionCheck.checkManageCustomLinks();
-    getStore().put(name, new CustomLink(name, url));
-  }
-
-  public void removeLink(String name) {
-    PermissionCheck.checkManageCustomLinks();
-    getStore().remove(name);
-  }
-
-  private ConfigurationEntryStore<CustomLink> getStore() {
-    return configurationEntryStoreFactory.withType(CustomLink.class).withName(STORE_NAME).build();
+    if (PermissionCheck.mayManageCustomLinks()) {
+      appender.appendLink("customLinksConfig", link);
+    }
   }
 }

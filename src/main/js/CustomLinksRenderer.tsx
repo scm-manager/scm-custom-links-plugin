@@ -22,20 +22,33 @@
  * SOFTWARE.
  */
 
-package com.cloudogu.customlinks;
+import { Link, Links } from "@scm-manager/ui-types";
+import React, { FC } from "react";
+import { useCustomLinks } from "./useCustomLinks";
+import { CustomLink } from "./GlobalConfig";
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+type Props = {
+  links: Links;
+};
 
-@Path("v2/sample")
-class SampleResource {
+const CustomLinksRenderer: FC<Props> = ({ links }) => {
+  const { data, isLoading } = useCustomLinks((links.customLinks as Link).href);
 
-  @GET
-  @Produces(MediaType.TEXT_PLAIN)
-  public String sample() {
-    return "Sample";
+  if (isLoading) {
+    return null;
   }
 
-}
+  return (
+    <>
+      {(data?._embedded?.customLinks as CustomLink[]).map(cl => (
+        <li>
+          <a href={cl.url} target="_blank">
+            {cl.name}
+          </a>
+        </li>
+      ))}
+    </>
+  );
+};
+
+export default CustomLinksRenderer;

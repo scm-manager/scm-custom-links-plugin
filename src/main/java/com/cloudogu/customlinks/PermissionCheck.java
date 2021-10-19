@@ -21,11 +21,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+package com.cloudogu.customlinks;
 
-describe("frontend unit tests", () => {
+import sonia.scm.config.ConfigurationPermissions;
 
-  it("some test", () => {
-    expect( 21 * 2 ).toBe(42);
-  });
+public class PermissionCheck {
 
-});
+  private static final String MANAGE_CUSTOM_LINKS = "manageCustomLinks";
+
+  private PermissionCheck() {
+  }
+
+  public static boolean mayManageCustomLinks() {
+    return ConfigurationPermissions.custom(MANAGE_CUSTOM_LINKS).isPermitted();
+  }
+
+  public static void checkManageCustomLinks() {
+    ConfigurationPermissions.custom(MANAGE_CUSTOM_LINKS).check();
+  }
+}

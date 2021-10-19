@@ -23,12 +23,43 @@
  */
 package com.cloudogu.customlinks;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import com.cloudogu.conveyor.GenerateDto;
+import com.cloudogu.conveyor.Include;
+import com.cloudogu.jaxrstie.GenerateLinkBuilder;
 
-@Getter
-@AllArgsConstructor
+import javax.validation.constraints.NotEmpty;
+
+@GenerateDto
+@GenerateLinkBuilder(className = "RestAPI")
 public class CustomLink {
+  @Include
+  @NotEmpty
   private String name;
+  @Include
+  @NotEmpty
   private String url;
+
+  CustomLink() {
+  }
+
+  public CustomLink(String name, String url) {
+    this.name = name;
+    this.url = url;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public String getUrl() {
+    return url;
+  }
+
+  public void setUrl(String url) {
+    this.url = url;
+  }
 }
