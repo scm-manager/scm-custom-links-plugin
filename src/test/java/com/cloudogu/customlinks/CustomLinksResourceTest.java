@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import sonia.scm.store.ConfigurationEntryStoreFactory;
 import sonia.scm.web.JsonMockHttpResponse;
 import sonia.scm.web.RestDispatcher;
 
@@ -49,12 +50,16 @@ class CustomLinksResourceTest {
   @Mock
   private CustomLinkConfigStore configStore;
 
+  @Mock
+  private ConfigurationEntryStoreFactory configurationEntryStoreFactory;
+
+
   private RestDispatcher dispatcher;
   private final JsonMockHttpResponse response = new JsonMockHttpResponse();
 
   @BeforeEach
   void initResource() {
-    CustomLinksResource resource = new CustomLinksResource(configStore);
+    CustomLinksResource resource = new CustomLinksResource(configStore, configurationEntryStoreFactory);
 
     dispatcher = new RestDispatcher();
     dispatcher.addSingletonResource(resource);
@@ -100,7 +105,7 @@ class CustomLinksResourceTest {
     byte[] contentJson = ("{\"name\" : \"SCM-Manager\", \"url\" : \"https://scm-manager.org/\"}").getBytes();
 
     MockHttpRequest request = MockHttpRequest.post("/" + CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH)
-      .contentType(CustomLinksResource.CUSTOM_LINKS_MEDIA_TYPE)
+      .contentType(CustomLinksResource.MEDIA_TYPE)
       .content(contentJson);
 
     dispatcher.invoke(request, response);
@@ -112,7 +117,7 @@ class CustomLinksResourceTest {
   @Test
   void shouldRemoveLink() throws URISyntaxException {
     MockHttpRequest request = MockHttpRequest.delete("/" + CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH + "/SCM-Manager")
-      .contentType(CustomLinksResource.CUSTOM_LINKS_MEDIA_TYPE);
+      .contentType(CustomLinksResource.MEDIA_TYPE);
 
     dispatcher.invoke(request, response);
 

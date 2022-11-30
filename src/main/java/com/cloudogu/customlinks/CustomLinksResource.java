@@ -24,9 +24,8 @@
 
 package com.cloudogu.customlinks;
 
-import de.otto.edison.hal.Embedded;
+import com.google.common.annotations.VisibleForTesting;
 import de.otto.edison.hal.HalRepresentation;
-import de.otto.edison.hal.Link;
 import de.otto.edison.hal.Links;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,22 +35,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import sonia.scm.api.v2.resources.ErrorDto;
 import sonia.scm.security.AllowAnonymousAccess;
+import sonia.scm.store.ConfigurationEntryStore;
+import sonia.scm.store.ConfigurationEntryStoreFactory;
 import sonia.scm.web.VndMediaType;
 
 import javax.inject.Inject;
-import javax.validation.Valid;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.cloudogu.customlinks.CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH;
 
@@ -59,21 +49,25 @@ import static com.cloudogu.customlinks.CustomLinksResource.CUSTOM_LINKS_CONFIG_P
   @Tag(name = "Custom Links", description = "Custom links plugin related endpoints")
 })
 @Path(CUSTOM_LINKS_CONFIG_PATH)
-public class CustomLinksResource {
+public class CustomLinksResource extends GlobalCollectionConfigurationResource<CustomLink, CustomLinkDto> {
 
-  public static final String CUSTOM_LINKS_MEDIA_TYPE = VndMediaType.PREFIX + "custom-links" + VndMediaType.SUFFIX;
+  public static final String MEDIA_TYPE = VndMediaType.PREFIX + "custom-links" + VndMediaType.SUFFIX;
   public static final String CUSTOM_LINKS_CONFIG_PATH = "v2/custom-links";
 
   private final CustomLinkConfigStore configStore;
 
+  @VisibleForTesting
+  public static final String STORE_NAME = "custom-links";
+  private static final String MANAGE_CUSTOM_LINKS = "manageCustomLinks";
+
+  private final ConfigurationEntryStoreFactory configurationEntryStoreFactory;
+
   @Inject
-  CustomLinksResource(CustomLinkConfigStore configStore) {
+  protected CustomLinksResource(CustomLinkConfigStore configStore, ConfigurationEntryStoreFactory configurationEntryStoreFactory) {
     this.configStore = configStore;
+    this.configurationEntryStoreFactory = configurationEntryStoreFactory;
   }
 
-  @GET
-  @Path("")
-  @Produces(CUSTOM_LINKS_MEDIA_TYPE)
   @Operation(
     summary = "Get all custom links",
     description = "Returns all custom links.",
@@ -84,7 +78,7 @@ public class CustomLinksResource {
     responseCode = "200",
     description = "success",
     content = @Content(
-      mediaType = CUSTOM_LINKS_MEDIA_TYPE,
+      mediaType = MEDIA_TYPE,
       schema = @Schema(implementation = HalRepresentation.class)
     )
   )
@@ -97,36 +91,10 @@ public class CustomLinksResource {
     )
   )
   @AllowAnonymousAccess
-  public HalRepresentation getAllCustomLinks(@Context UriInfo uriInfo) {
-    RestAPI restAPI = new RestAPI(uriInfo);
-    Collection<CustomLink> customLinks = configStore.getAllLinks();
-    List<CustomLinkDto> linkDtos = mapCustomLinksToDtos(restAPI, customLinks);
-    return new HalRepresentation(createCollectionLinks(restAPI), Embedded.embedded("customLinks", linkDtos));
+  public HalRepresentation getAll(UriInfo uriInfo) {
+    return super.getAll(uriInfo);
   }
 
-  private Links createCollectionLinks(RestAPI restAPI) {
-    Links.Builder builder = Links.linkingTo();
-      builder.single(Link.link("self", restAPI.customLinks().getAllCustomLinks().asString()));
-      if (PermissionCheck.mayManageCustomLinks()) {
-        builder.single(Link.link("addLink", restAPI.customLinks().addCustomLink().asString()));
-      }
-
-      return builder.build();
-  }
-
-  private List<CustomLinkDto> mapCustomLinksToDtos(RestAPI restAPI, Collection<CustomLink> customLinks) {
-    return customLinks.stream().map(customLink -> {
-      Links.Builder builder = Links.linkingTo();
-      if (PermissionCheck.mayManageCustomLinks()) {
-        builder.single(Link.link("delete", restAPI.customLinks().deleteCustomLink(customLink.getName()).asString()));
-      }
-      return CustomLinkDto.from(customLink, builder.build());
-    }).collect(Collectors.toList());
-  }
-
-  @POST
-  @Path("")
-  @Consumes(CUSTOM_LINKS_MEDIA_TYPE)
   @Operation(
     summary = "Add single custom link",
     description = "Adds a single custom link.",
@@ -144,12 +112,10 @@ public class CustomLinksResource {
       schema = @Schema(implementation = ErrorDto.class)
     )
   )
-  public void addCustomLink(@Valid CustomLinkDto customLink) {
+  public void create(CustomLinkDto customLink) {
     configStore.addLink(customLink.getName(), customLink.getUrl());
   }
 
-  @DELETE
-  @Path("{linkName}")
   @Operation(
     summary = "Delete single custom link",
     description = "Deletes a single custom link.",
@@ -167,7 +133,38 @@ public class CustomLinksResource {
       schema = @Schema(implementation = ErrorDto.class)
     )
   )
-  public void deleteCustomLink(@PathParam("linkName") String linkName) {
-    configStore.removeLink(linkName);
+  @Override
+  public void delete(String id) {
+    super.delete(id);
+  }
+
+  @Override
+  ConfigurationEntryStore<CustomLink> getConfigStore() {
+    return configurationEntryStoreFactory.withType(CustomLink.class).withName(STORE_NAME).build();
+  }
+
+  @Override
+  String getId(CustomLink entity) {
+    return entity.getName();
+  }
+
+  @Override
+  CustomLinkDto map(CustomLink entity, Links links) {
+    return CustomLinkDto.from(entity, links);
+  }
+
+  @Override
+  String getReadPermission() {
+    return null;
+  }
+
+  @Override
+  String getWritePermission() {
+    return MANAGE_CUSTOM_LINKS;
+  }
+
+  @Override
+  String getCollectionName() {
+    return "customLinks";
   }
 }

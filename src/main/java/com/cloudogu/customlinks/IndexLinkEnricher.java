@@ -33,6 +33,7 @@ import sonia.scm.plugin.Extension;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
+import javax.ws.rs.core.UriBuilder;
 
 @Extension
 @Enrich(Index.class)
@@ -47,7 +48,7 @@ public class IndexLinkEnricher implements HalEnricher {
 
   @Override
   public void enrich(HalEnricherContext context, HalAppender appender) {
-    String link = new RestAPI(scmPathInfoStore.get().get().getApiRestUri()).customLinks().getAllCustomLinks().asString();
+    String link = UriBuilder.fromUri(scmPathInfoStore.get().get().getApiRestUri()).path(CustomLinksResource.class).build().toASCIIString();
     appender.appendLink("customLinks", link);
 
     if (PermissionCheck.mayManageCustomLinks()) {
