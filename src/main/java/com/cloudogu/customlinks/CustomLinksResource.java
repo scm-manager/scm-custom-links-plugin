@@ -25,10 +25,8 @@
 package com.cloudogu.customlinks;
 
 import com.cloudogu.resources.CollectionResource;
-import com.github.sdorra.ssp.PermissionCheck;
 import com.google.common.annotations.VisibleForTesting;
 import de.otto.edison.hal.HalRepresentation;
-import de.otto.edison.hal.Links;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -46,25 +44,22 @@ import sonia.scm.config.ConfigurationPermissions;
 import sonia.scm.plugin.Extension;
 import sonia.scm.security.AllowAnonymousAccess;
 import sonia.scm.store.ConfigurationEntryStoreFactory;
-import sonia.scm.store.DataStore;
 import sonia.scm.web.VndMediaType;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import java.util.Optional;
 
-// TODO: Find a way to add the @Extension and @Enrich annotations to the abstract class
 @Extension
 @Enrich(Index.class)
 @OpenAPIDefinition(tags = {
   @Tag(name = "Custom Links", description = "Custom links plugin related endpoints")
 })
 @Path(CustomLinksResource.PATH)
-public class CustomLinksResource extends CollectionResource<CustomLink, CustomLinkDto> implements HalEnricher {
+public class CustomLinksResource extends CollectionResource<CustomLink, CustomLinkDto> {
 
   @VisibleForTesting
   public static final String PATH = "v2/custom-links";
@@ -74,13 +69,23 @@ public class CustomLinksResource extends CollectionResource<CustomLink, CustomLi
   @VisibleForTesting
   public static final String MANAGE_PERMISSION = "manageCustomLinks";
 
-  private final ConfigurationEntryStoreFactory configurationEntryStoreFactory;
-  private final Provider<ScmPathInfoStore> scmPathInfoStore;
+  @VisibleForTesting
+  public static final String COLLECTION_NAME = "customLinks";
 
   @Inject
   protected CustomLinksResource(ConfigurationEntryStoreFactory configurationEntryStoreFactory, Provider<ScmPathInfoStore> scmPathInfoStore) {
-    this.configurationEntryStoreFactory = configurationEntryStoreFactory;
-    this.scmPathInfoStore = scmPathInfoStore;
+    super(
+      Optional.empty(),
+      Optional.of(ConfigurationPermissions.custom(MANAGE_PERMISSION)),
+      (CustomLinkDto payload) -> new CustomLink(payload.getName(), payload.getUrl()),
+      CustomLinkDto::from,
+      COLLECTION_NAME,
+      configurationEntryStoreFactory
+        .withType(CustomLink.class)
+        .withName(STORE_NAME)::build,
+      scmPathInfoStore,
+      CustomLink::getName
+    );
   }
 
   @Operation(
@@ -151,48 +156,5 @@ public class CustomLinksResource extends CollectionResource<CustomLink, CustomLi
   @Override
   public void delete(String id) {
     super.delete(id);
-  }
-
-  @Override
-  public DataStore<CustomLink> getStore() {
-    return configurationEntryStoreFactory
-      .withType(CustomLink.class)
-      .withName(STORE_NAME) // TODO: Could this be a generic base alternative: CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert(getCollectionName()) ?
-      .build();
-  }
-
-  @Override
-  protected String getId(CustomLink entity) {
-    return entity.getName();
-  }
-
-  @Override
-  protected CustomLinkDto map(CustomLink entity, Links links) {
-    return CustomLinkDto.from(entity, links);
-  }
-
-  @Override
-  protected CustomLink map(CustomLinkDto payload) {
-    return new CustomLink(payload.getName(), payload.getUrl());
-  }
-
-  @Override
-  protected Optional<PermissionCheck> getReadPermission() {
-    return Optional.empty();
-  }
-
-  @Override
-  protected Optional<PermissionCheck> getWritePermission() {
-    return Optional.of(ConfigurationPermissions.custom(MANAGE_PERMISSION));
-  }
-
-  @Override
-  protected String getCollectionName() {
-    return "customLinks";
-  }
-
-  @Override
-  public void enrich(HalEnricherContext context, HalAppender appender) {
-    createLinks(appender, () -> UriBuilder.fromUri(scmPathInfoStore.get().get().getApiRestUri()));
   }
 }

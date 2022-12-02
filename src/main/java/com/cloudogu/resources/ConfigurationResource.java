@@ -5,8 +5,12 @@ import de.otto.edison.hal.HalRepresentation;
 import de.otto.edison.hal.Link;
 import de.otto.edison.hal.Links;
 import sonia.scm.api.v2.resources.HalAppender;
+import sonia.scm.api.v2.resources.HalEnricher;
+import sonia.scm.api.v2.resources.HalEnricherContext;
+import sonia.scm.api.v2.resources.ScmPathInfoStore;
 import sonia.scm.store.ConfigurationStore;
 
+import javax.inject.Provider;
 import javax.validation.Valid;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -18,16 +22,42 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
-public abstract class ConfigurationResource<DAO, DTO extends HalRepresentation> extends Resource {
+public abstract class ConfigurationResource<DAO, DTO extends HalRepresentation> extends Resource<DAO, DTO, ConfigurationStore<DAO>> implements HalEnricher {
+
+  public ConfigurationResource(
+    Optional<PermissionCheck> readPermission,
+    Optional<PermissionCheck> writePermission,
+    Function<DTO, DAO> dtoToDaoMapper,
+    DaoToDtoMapper<DAO, DTO> daoToDtoMapper,
+    String name,
+    Supplier<ConfigurationStore<DAO>> storeSupplier,
+    Supplier<UriBuilder> baseUriBuilderSupplier
+  ) {
+    super(readPermission, writePermission, dtoToDaoMapper, daoToDtoMapper, name, storeSupplier, baseUriBuilderSupplier);
+  }
+
+  public ConfigurationResource(
+    Optional<PermissionCheck> readPermission,
+    Optional<PermissionCheck> writePermission,
+    Function<DTO, DAO> dtoToDaoMapper,
+    DaoToDtoMapper<DAO, DTO> daoToDtoMapper,
+    String name,
+    Supplier<ConfigurationStore<DAO>> storeSupplier,
+    Provider<ScmPathInfoStore> scmPathInfoStore
+  ) {
+    super(readPermission, writePermission, dtoToDaoMapper, daoToDtoMapper, name, storeSupplier, scmPathInfoStore);
+  }
 
   @GET
   @Produces(MediaType.APPLICATION_JSON)
   @Path("")
   public Response get(@Context UriInfo uriInfo) {
     getReadPermission().ifPresent(PermissionCheck::check);
-    return Response.ok(map(getStore().get(), createDtoLinks(uriInfo))).build();
+    return Response.ok(daoToDtoMapper.map(storeSupplier.get().get(), createDtoLinks(uriInfo))).build();
   }
 
   @PUT
@@ -35,7 +65,7 @@ public abstract class ConfigurationResource<DAO, DTO extends HalRepresentation> 
   @Path("")
   public void update(@Valid DTO payload) {
     getWritePermission().ifPresent(PermissionCheck::check);
-    getStore().set(map(payload));
+    storeSupplier.get().set(dtoToDaoMapper.apply(payload));
   }
 
   private Links createDtoLinks(UriInfo uriInfo) {
@@ -49,24 +79,6 @@ public abstract class ConfigurationResource<DAO, DTO extends HalRepresentation> 
     return builder.build();
   }
 
-  /**
-   * Helper method for {@link sonia.scm.api.v2.resources.Enrich}ing HalRepresentations.
-   * We cannot implement the HalAppender ourselves because the child resource might be nested.
-   * This can therefore be used to append links to both the index and repositories.
-   */
-  protected final void createLinks(HalAppender appender, Supplier<UriBuilder> uriBaseBuilderFactory) {
-    if (getReadPermission().map(PermissionCheck::isPermitted).orElse(true)) {
-      appender.appendLink(getConfigurationName(), getReadLink(uriBaseBuilderFactory));
-    }
-
-    if (getWritePermission().map(PermissionCheck::isPermitted).orElse(true)) {
-      appender.appendLink(
-        "update" + getConfigurationName().substring(0, 1).toUpperCase() + getConfigurationName().substring(1),
-        getUpdateLink(uriBaseBuilderFactory)
-      );
-    }
-  }
-
   private String getReadLink(Supplier<UriBuilder> baseBuilderFactory) {
     return getResourceLinkBuilder(baseBuilderFactory.get()).path(ConfigurationResource.class, "get").build().toASCIIString();
   }
@@ -74,9 +86,18 @@ public abstract class ConfigurationResource<DAO, DTO extends HalRepresentation> 
   private String getUpdateLink(Supplier<UriBuilder> baseBuilderFactory) {
     return getResourceLinkBuilder(baseBuilderFactory.get()).path(ConfigurationResource.class, "update").build().toASCIIString();
   }
-  protected abstract ConfigurationStore<DAO> getStore();
-  protected abstract DTO map(DAO entity, Links links);
-  protected abstract DAO map(DTO payload);
-  protected abstract String getConfigurationName();
 
+  @Override
+  public final void enrich(HalEnricherContext context, HalAppender appender) {
+    if (getReadPermission().map(PermissionCheck::isPermitted).orElse(true)) {
+      appender.appendLink(name, getReadLink(baseUriBuilderSupplier));
+    }
+
+    if (getWritePermission().map(PermissionCheck::isPermitted).orElse(true)) {
+      appender.appendLink(
+        "update" + name.substring(0, 1).toUpperCase() + name.substring(1),
+        getUpdateLink(baseUriBuilderSupplier)
+      );
+    }
+  }
 }

@@ -30,8 +30,12 @@ import de.otto.edison.hal.HalRepresentation;
 import de.otto.edison.hal.Link;
 import de.otto.edison.hal.Links;
 import sonia.scm.api.v2.resources.HalAppender;
+import sonia.scm.api.v2.resources.HalEnricher;
+import sonia.scm.api.v2.resources.HalEnricherContext;
+import sonia.scm.api.v2.resources.ScmPathInfoStore;
 import sonia.scm.store.DataStore;
 
+import javax.inject.Provider;
 import javax.validation.Valid;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -51,7 +55,37 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public abstract class CollectionResource<DAO, DTO extends HalRepresentation> extends Resource {
+public abstract class CollectionResource<DAO, DTO extends HalRepresentation> extends Resource<DAO, DTO, DataStore<DAO>> implements HalEnricher {
+
+  protected final Function<DAO, String> idSupplier;
+
+  protected CollectionResource(
+    Optional<PermissionCheck> readPermission,
+    Optional<PermissionCheck> writePermission,
+    Function<DTO, DAO> dtoToDaoMapper,
+    DaoToDtoMapper<DAO, DTO> daoToDtoMapper,
+    String name,
+    Supplier<DataStore<DAO>> storeSupplier,
+    Supplier<UriBuilder> baseUriBuilderSupplier,
+    Function<DAO, String> idSupplier
+  ) {
+    super(readPermission, writePermission, dtoToDaoMapper, daoToDtoMapper, name, storeSupplier, baseUriBuilderSupplier);
+    this.idSupplier = idSupplier;
+  }
+
+  protected CollectionResource(
+    Optional<PermissionCheck> readPermission,
+    Optional<PermissionCheck> writePermission,
+    Function<DTO, DAO> dtoToDaoMapper,
+    DaoToDtoMapper<DAO, DTO> daoToDtoMapper,
+    String name,
+    Supplier<DataStore<DAO>> storeSupplier,
+    Provider<ScmPathInfoStore> scmPathInfoStore,
+    Function<DAO, String> idSupplier
+  ) {
+    super(readPermission, writePermission, dtoToDaoMapper, daoToDtoMapper, name, storeSupplier, scmPathInfoStore);
+    this.idSupplier = idSupplier;
+  }
 
   @GET
   @Produces(MediaType.APPLICATION_JSON)
@@ -61,8 +95,8 @@ public abstract class CollectionResource<DAO, DTO extends HalRepresentation> ext
     return new HalRepresentation(
       createCollectionDtoLinks(uriInfo),
       Embedded.embedded(
-        getCollectionName(),
-        mapToDtos(getStore().getAll().values(), uriInfo)
+        name,
+        mapToDtos(storeSupplier.get().getAll().values(), uriInfo)
       )
     );
   }
@@ -72,15 +106,15 @@ public abstract class CollectionResource<DAO, DTO extends HalRepresentation> ext
   @Path("")
   public void create(@Valid DTO payload) {
     getCreatePermission().ifPresent(PermissionCheck::check);
-    DAO dao = map(payload);
-    getStore().put(getId(dao), dao);
+    DAO dao = dtoToDaoMapper.apply(payload);
+    storeSupplier.get().put(idSupplier.apply(dao), dao);
   }
 
   @DELETE
   @Path("{id}")
   public void delete(@PathParam("id") String id) {
     getDeletePermission().ifPresent(PermissionCheck::check);
-    getStore().remove(id);
+    storeSupplier.get().remove(id);
   }
 
   private List<DTO> mapToDtos(Collection<DAO> customLinks, UriInfo uriInfo) {
@@ -94,7 +128,7 @@ public abstract class CollectionResource<DAO, DTO extends HalRepresentation> ext
       if (getDeletePermission().map(PermissionCheck::isPermitted).orElse(true)) {
         builder.single(Link.link("delete", getDeleteLink(uriBuilder, entity)));
       }
-      return map(entity, builder.build());
+      return daoToDtoMapper.map(entity, builder.build());
     };
   }
 
@@ -109,26 +143,8 @@ public abstract class CollectionResource<DAO, DTO extends HalRepresentation> ext
     return builder.build();
   }
 
-  /**
-   * Helper method for {@link sonia.scm.api.v2.resources.Enrich}ing HalRepresentations.
-   * We cannot implement the HalAppender ourselves because the child resource might be nested.
-   * This can therefore be used to append links to both the index and repositories.
-   */
-  protected final void createLinks(HalAppender appender, Supplier<UriBuilder> uriBaseBuilderFactory) {
-    if (getListPermission().map(PermissionCheck::isPermitted).orElse(true)) {
-      appender.appendLink(getCollectionName(), getAllLink(uriBaseBuilderFactory));
-    }
-
-    if (getCreatePermission().map(PermissionCheck::isPermitted).orElse(true)) {
-      appender.appendLink(
-        "add" + getCollectionName().substring(0, 1).toUpperCase() + getCollectionName().substring(1),
-        getAddLink(uriBaseBuilderFactory)
-      );
-    }
-  }
-
   private String getDeleteLink(Supplier<UriBuilder> baseBuilderFactory, DAO entity) {
-    return getResourceLinkBuilder(baseBuilderFactory.get()).path(CollectionResource.class, "delete").build(getId(entity)).toASCIIString();
+    return getResourceLinkBuilder(baseBuilderFactory.get()).path(CollectionResource.class, "delete").build(idSupplier.apply(entity)).toASCIIString();
   }
 
   private String getAllLink(Supplier<UriBuilder> baseBuilderFactory) {
@@ -151,19 +167,19 @@ public abstract class CollectionResource<DAO, DTO extends HalRepresentation> ext
     return getReadPermission();
   }
 
-  protected abstract DataStore<DAO> getStore();
+  @Override
+  public final void enrich(HalEnricherContext context, HalAppender appender) {
+    if (getListPermission().map(PermissionCheck::isPermitted).orElse(true)) {
+      appender.appendLink(name, getAllLink(baseUriBuilderSupplier));
+    }
 
-  protected abstract String getId(DAO entity);
-
-  protected abstract DTO map(DAO entity, Links links);
-
-  protected abstract DAO map(DTO payload);
-
-  /**
-   * TODO: Convention is lowerCamelCase ?
-   */
-  protected abstract String getCollectionName();
-
+    if (getCreatePermission().map(PermissionCheck::isPermitted).orElse(true)) {
+      appender.appendLink(
+        "add" + name.substring(0, 1).toUpperCase() + name.substring(1),
+        getAddLink(baseUriBuilderSupplier)
+      );
+    }
+  }
 }
 
 

@@ -25,17 +25,63 @@
 package com.cloudogu.resources;
 
 import com.github.sdorra.ssp.PermissionCheck;
+import de.otto.edison.hal.HalRepresentation;
+import de.otto.edison.hal.Links;
+import sonia.scm.api.v2.resources.ScmPathInfoStore;
 
+import javax.inject.Provider;
 import javax.ws.rs.core.UriBuilder;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
-public abstract class Resource {
+public abstract class Resource<DAO, DTO extends HalRepresentation, Store> {
 
-  protected abstract Optional<PermissionCheck> getReadPermission();
+  protected final Optional<PermissionCheck> readPermission;
+  protected final Optional<PermissionCheck> writePermission;
 
-  protected abstract Optional<PermissionCheck> getWritePermission();
+  protected final Function<DTO, DAO> dtoToDaoMapper;
+  protected final DaoToDtoMapper<DAO, DTO> daoToDtoMapper;
+  
+  protected final String name;
 
-  protected UriBuilder getResourceLinkBuilder(UriBuilder base) {
+  protected final Supplier<Store> storeSupplier;
+
+  protected final Supplier<UriBuilder> baseUriBuilderSupplier;
+
+  protected Resource(Optional<PermissionCheck> readPermission, Optional<PermissionCheck> writePermission, Function<DTO, DAO> dtoToDaoMapper, DaoToDtoMapper<DAO, DTO> daoToDtoMapper, String name, Supplier<Store> storeSupplier, Supplier<UriBuilder> baseUriBuilderSupplier) {
+    this.readPermission = readPermission;
+    this.writePermission = writePermission;
+    this.dtoToDaoMapper = dtoToDaoMapper;
+    this.daoToDtoMapper = daoToDtoMapper;
+    this.name = name;
+    this.storeSupplier = storeSupplier;
+    this.baseUriBuilderSupplier = baseUriBuilderSupplier;
+  }
+
+  protected Resource(Optional<PermissionCheck> readPermission, Optional<PermissionCheck> writePermission, Function<DTO, DAO> dtoToDaoMapper, DaoToDtoMapper<DAO, DTO> daoToDtoMapper, String name, Supplier<Store> storeSupplier, Provider<ScmPathInfoStore> scmPathInfoStore) {
+    this.readPermission = readPermission;
+    this.writePermission = writePermission;
+    this.dtoToDaoMapper = dtoToDaoMapper;
+    this.daoToDtoMapper = daoToDtoMapper;
+    this.name = name;
+    this.storeSupplier = storeSupplier;
+    this.baseUriBuilderSupplier = () -> UriBuilder.fromUri(scmPathInfoStore.get().get().getApiRestUri());
+  }
+
+  protected final UriBuilder getResourceLinkBuilder(UriBuilder base) {
     return base.path(this.getClass());
+  }
+
+  public Optional<PermissionCheck> getReadPermission() {
+    return readPermission;
+  }
+
+  public Optional<PermissionCheck> getWritePermission() {
+    return writePermission;
+  }
+
+  public interface DaoToDtoMapper<DAO, DTO> {
+    DTO map(DAO entity, Links links);
   }
 }
