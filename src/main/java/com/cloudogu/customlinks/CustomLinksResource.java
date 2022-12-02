@@ -35,9 +35,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import sonia.scm.api.v2.resources.Enrich;
 import sonia.scm.api.v2.resources.ErrorDto;
-import sonia.scm.api.v2.resources.HalAppender;
-import sonia.scm.api.v2.resources.HalEnricher;
-import sonia.scm.api.v2.resources.HalEnricherContext;
 import sonia.scm.api.v2.resources.Index;
 import sonia.scm.api.v2.resources.ScmPathInfoStore;
 import sonia.scm.config.ConfigurationPermissions;
@@ -63,12 +60,10 @@ public class CustomLinksResource extends CollectionResource<CustomLink, CustomLi
 
   @VisibleForTesting
   public static final String PATH = "v2/custom-links";
-
   @VisibleForTesting
   public static final String STORE_NAME = "custom-links";
   @VisibleForTesting
   public static final String MANAGE_PERMISSION = "manageCustomLinks";
-
   @VisibleForTesting
   public static final String COLLECTION_NAME = "customLinks";
 
