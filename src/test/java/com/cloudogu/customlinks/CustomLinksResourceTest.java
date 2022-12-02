@@ -24,7 +24,7 @@
 package com.cloudogu.customlinks;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.github.sdorra.jse.ShiroExtension;
 import org.github.sdorra.jse.SubjectAware;
 import org.jboss.resteasy.mock.MockHttpRequest;
@@ -33,12 +33,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import sonia.scm.api.v2.resources.ScmPathInfoStore;
+import sonia.scm.store.ConfigurationEntryStore;
 import sonia.scm.store.ConfigurationEntryStoreFactory;
 import sonia.scm.web.JsonMockHttpResponse;
 import sonia.scm.web.RestDispatcher;
 
+import javax.inject.Provider;
+import javax.ws.rs.core.MediaType;
 import java.net.URISyntaxException;
 
+import static com.cloudogu.customlinks.CustomLinksResource.STORE_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,18 +53,21 @@ import static org.mockito.Mockito.when;
 class CustomLinksResourceTest {
 
   @Mock
-  private CustomLinkConfigStore configStore;
+  private ConfigurationEntryStore<CustomLink> configStore;
 
   @Mock
   private ConfigurationEntryStoreFactory configurationEntryStoreFactory;
 
+  @Mock
+  private Provider<ScmPathInfoStore> scmPathInfoStore;
 
   private RestDispatcher dispatcher;
   private final JsonMockHttpResponse response = new JsonMockHttpResponse();
 
   @BeforeEach
   void initResource() {
-    CustomLinksResource resource = new CustomLinksResource(configStore, configurationEntryStoreFactory);
+    when(configurationEntryStoreFactory.withType(CustomLink.class).withName(STORE_NAME).build()).thenReturn(configStore);
+    CustomLinksResource resource = new CustomLinksResource(configurationEntryStoreFactory, scmPathInfoStore);
 
     dispatcher = new RestDispatcher();
     dispatcher.addSingletonResource(resource);
@@ -67,9 +75,9 @@ class CustomLinksResourceTest {
 
   @Test
   void shouldGetAllLinksWithoutManagePermission() throws URISyntaxException {
-    when(configStore.getAllLinks()).thenReturn(ImmutableList.of(new CustomLink("SCM-Manager", "https://scm-manager.org")));
+    when(configStore.getAll()).thenReturn(ImmutableMap.of("SCM-Manager", new CustomLink("SCM-Manager", "https://scm-manager.org")));
 
-    MockHttpRequest request = MockHttpRequest.get("/" + CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH);
+    MockHttpRequest request = MockHttpRequest.get("/" + CustomLinksResource.PATH);
 
     dispatcher.invoke(request, response);
 
@@ -85,9 +93,9 @@ class CustomLinksResourceTest {
   @Test
   @SubjectAware(permissions = "configuration:manageCustomLinks")
   void shouldGetAllLinksWithManageLinks() throws URISyntaxException {
-    when(configStore.getAllLinks()).thenReturn(ImmutableList.of(new CustomLink("SCM-Manager", "https://scm-manager.org")));
+    when(configStore.getAll()).thenReturn(ImmutableMap.of("SCM-Manager", new CustomLink("SCM-Manager", "https://scm-manager.org")));
 
-    MockHttpRequest request = MockHttpRequest.get("/" + CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH);
+    MockHttpRequest request = MockHttpRequest.get("/" + CustomLinksResource.PATH);
 
     dispatcher.invoke(request, response);
 
@@ -104,24 +112,24 @@ class CustomLinksResourceTest {
   void shouldAddLink() throws URISyntaxException {
     byte[] contentJson = ("{\"name\" : \"SCM-Manager\", \"url\" : \"https://scm-manager.org/\"}").getBytes();
 
-    MockHttpRequest request = MockHttpRequest.post("/" + CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH)
-      .contentType(CustomLinksResource.MEDIA_TYPE)
+    MockHttpRequest request = MockHttpRequest.post("/" + CustomLinksResource.PATH)
+      .contentType(MediaType.APPLICATION_JSON)
       .content(contentJson);
 
     dispatcher.invoke(request, response);
 
     assertThat(response.getStatus()).isEqualTo(204);
-    verify(configStore).addLink("SCM-Manager", "https://scm-manager.org/");
+    verify(configStore).put("SCM-Manager", new CustomLink("SCM-Manager", "https://scm-manager.org/"));
   }
 
   @Test
   void shouldRemoveLink() throws URISyntaxException {
-    MockHttpRequest request = MockHttpRequest.delete("/" + CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH + "/SCM-Manager")
-      .contentType(CustomLinksResource.MEDIA_TYPE);
+    MockHttpRequest request = MockHttpRequest.delete("/" + CustomLinksResource.PATH + "/SCM-Manager")
+      .contentType(MediaType.APPLICATION_JSON);
 
     dispatcher.invoke(request, response);
 
     assertThat(response.getStatus()).isEqualTo(204);
-    verify(configStore).removeLink("SCM-Manager");
+    verify(configStore).remove("SCM-Manager");
   }
 }

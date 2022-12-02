@@ -30,8 +30,8 @@ import CustomLinksRenderer from "./CustomLinksRenderer";
 configurationBinder.bindGlobal(
   "/custom-links",
   "scm-custom-links-plugin.settings.navLink",
-  "customLinksConfig",
+  "addCustomLinks",
   GlobalConfig
 );
 
-binder.bind("footer.information", CustomLinksRenderer)
+binder.bind("footer.information", CustomLinksRenderer);

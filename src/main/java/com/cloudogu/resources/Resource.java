@@ -21,42 +21,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.cloudogu.customlinks;
 
-import com.google.common.annotations.VisibleForTesting;
-import sonia.scm.store.ConfigurationEntryStore;
-import sonia.scm.store.ConfigurationEntryStoreFactory;
+package com.cloudogu.resources;
 
-import javax.inject.Inject;
-import java.util.Collection;
+import com.github.sdorra.ssp.PermissionCheck;
 
-public class CustomLinkConfigStore {
+import javax.ws.rs.core.UriBuilder;
+import java.util.Optional;
 
-  @VisibleForTesting
-  public static final String STORE_NAME = "custom-links";
+public abstract class Resource {
 
-  private final ConfigurationEntryStoreFactory configurationEntryStoreFactory;
+  protected abstract Optional<PermissionCheck> getReadPermission();
 
-  @Inject
-  public CustomLinkConfigStore(ConfigurationEntryStoreFactory configurationEntryStoreFactory) {
-    this.configurationEntryStoreFactory = configurationEntryStoreFactory;
-  }
+  protected abstract Optional<PermissionCheck> getWritePermission();
 
-  public Collection<CustomLink> getAllLinks() {
-    return getStore().getAll().values();
-  }
-
-  public void addLink(String name, String url) {
-    PermissionCheck.checkManageCustomLinks();
-    getStore().put(name, new CustomLink(name, url));
-  }
-
-  public void removeLink(String name) {
-    PermissionCheck.checkManageCustomLinks();
-    getStore().remove(name);
-  }
-
-  private ConfigurationEntryStore<CustomLink> getStore() {
-    return configurationEntryStoreFactory.withType(CustomLink.class).withName(STORE_NAME).build();
+  protected UriBuilder getResourceLinkBuilder(UriBuilder base) {
+    return base.path(this.getClass());
   }
 }

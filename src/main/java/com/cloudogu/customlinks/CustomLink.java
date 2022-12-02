@@ -25,12 +25,13 @@ package com.cloudogu.customlinks;
 
 import com.cloudogu.conveyor.GenerateDto;
 import com.cloudogu.conveyor.Include;
-import com.cloudogu.jaxrstie.GenerateLinkBuilder;
 
 import javax.validation.constraints.NotEmpty;
 
+/**
+ * TODO: Make GenerateDto work with Lombok
+ */
 @GenerateDto
-@GenerateLinkBuilder(className = "RestAPI")
 public class CustomLink {
   @Include
   @NotEmpty

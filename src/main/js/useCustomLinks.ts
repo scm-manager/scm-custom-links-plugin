@@ -23,7 +23,7 @@
  */
 import { apiClient } from "@scm-manager/ui-components";
 import { HalRepresentation } from "@scm-manager/ui-types";
-import { useMutation, useQueryClient, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { CustomLink } from "./GlobalConfig";
 
 export const useCustomLinks = (link: string) => {
@@ -62,8 +62,8 @@ export const useDeleteCustomLink = () => {
 export const useAddCustomLink = (link: string) => {
   const queryClient = useQueryClient();
   const { mutate, isLoading, error } = useMutation<unknown, Error, CustomLink>(
-    (customLink) => {
-      return apiClient.post(link, customLink, "application/vnd.scmm-custom-links+json;v=2");
+    customLink => {
+      return apiClient.post(link, customLink);
     },
     {
       onSuccess: () => {

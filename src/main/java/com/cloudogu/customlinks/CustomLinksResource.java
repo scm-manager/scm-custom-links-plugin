@@ -24,6 +24,8 @@
 
 package com.cloudogu.customlinks;
 
+import com.cloudogu.resources.CollectionResource;
+import com.github.sdorra.ssp.PermissionCheck;
 import com.google.common.annotations.VisibleForTesting;
 import de.otto.edison.hal.HalRepresentation;
 import de.otto.edison.hal.Links;
@@ -33,39 +35,52 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import sonia.scm.api.v2.resources.Enrich;
 import sonia.scm.api.v2.resources.ErrorDto;
+import sonia.scm.api.v2.resources.HalAppender;
+import sonia.scm.api.v2.resources.HalEnricher;
+import sonia.scm.api.v2.resources.HalEnricherContext;
+import sonia.scm.api.v2.resources.Index;
+import sonia.scm.api.v2.resources.ScmPathInfoStore;
+import sonia.scm.config.ConfigurationPermissions;
+import sonia.scm.plugin.Extension;
 import sonia.scm.security.AllowAnonymousAccess;
-import sonia.scm.store.ConfigurationEntryStore;
 import sonia.scm.store.ConfigurationEntryStoreFactory;
+import sonia.scm.store.DataStore;
 import sonia.scm.web.VndMediaType;
 
 import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.ws.rs.Path;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
+import java.util.Optional;
 
-import static com.cloudogu.customlinks.CustomLinksResource.CUSTOM_LINKS_CONFIG_PATH;
-
+// TODO: Find a way to add the @Extension and @Enrich annotations to the abstract class
+@Extension
+@Enrich(Index.class)
 @OpenAPIDefinition(tags = {
   @Tag(name = "Custom Links", description = "Custom links plugin related endpoints")
 })
-@Path(CUSTOM_LINKS_CONFIG_PATH)
-public class CustomLinksResource extends GlobalCollectionConfigurationResource<CustomLink, CustomLinkDto> {
+@Path(CustomLinksResource.PATH)
+public class CustomLinksResource extends CollectionResource<CustomLink, CustomLinkDto> implements HalEnricher {
 
-  public static final String MEDIA_TYPE = VndMediaType.PREFIX + "custom-links" + VndMediaType.SUFFIX;
-  public static final String CUSTOM_LINKS_CONFIG_PATH = "v2/custom-links";
-
-  private final CustomLinkConfigStore configStore;
+  @VisibleForTesting
+  public static final String PATH = "v2/custom-links";
 
   @VisibleForTesting
   public static final String STORE_NAME = "custom-links";
-  private static final String MANAGE_CUSTOM_LINKS = "manageCustomLinks";
+  @VisibleForTesting
+  public static final String MANAGE_PERMISSION = "manageCustomLinks";
 
   private final ConfigurationEntryStoreFactory configurationEntryStoreFactory;
+  private final Provider<ScmPathInfoStore> scmPathInfoStore;
 
   @Inject
-  protected CustomLinksResource(CustomLinkConfigStore configStore, ConfigurationEntryStoreFactory configurationEntryStoreFactory) {
-    this.configStore = configStore;
+  protected CustomLinksResource(ConfigurationEntryStoreFactory configurationEntryStoreFactory, Provider<ScmPathInfoStore> scmPathInfoStore) {
     this.configurationEntryStoreFactory = configurationEntryStoreFactory;
+    this.scmPathInfoStore = scmPathInfoStore;
   }
 
   @Operation(
@@ -78,7 +93,7 @@ public class CustomLinksResource extends GlobalCollectionConfigurationResource<C
     responseCode = "200",
     description = "success",
     content = @Content(
-      mediaType = MEDIA_TYPE,
+      mediaType = MediaType.APPLICATION_JSON,
       schema = @Schema(implementation = HalRepresentation.class)
     )
   )
@@ -113,7 +128,7 @@ public class CustomLinksResource extends GlobalCollectionConfigurationResource<C
     )
   )
   public void create(CustomLinkDto customLink) {
-    configStore.addLink(customLink.getName(), customLink.getUrl());
+    super.create(customLink);
   }
 
   @Operation(
@@ -139,32 +154,45 @@ public class CustomLinksResource extends GlobalCollectionConfigurationResource<C
   }
 
   @Override
-  ConfigurationEntryStore<CustomLink> getConfigStore() {
-    return configurationEntryStoreFactory.withType(CustomLink.class).withName(STORE_NAME).build();
+  public DataStore<CustomLink> getStore() {
+    return configurationEntryStoreFactory
+      .withType(CustomLink.class)
+      .withName(STORE_NAME) // TODO: Could this be a generic base alternative: CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_HYPHEN).convert(getCollectionName()) ?
+      .build();
   }
 
   @Override
-  String getId(CustomLink entity) {
+  protected String getId(CustomLink entity) {
     return entity.getName();
   }
 
   @Override
-  CustomLinkDto map(CustomLink entity, Links links) {
+  protected CustomLinkDto map(CustomLink entity, Links links) {
     return CustomLinkDto.from(entity, links);
   }
 
   @Override
-  String getReadPermission() {
-    return null;
+  protected CustomLink map(CustomLinkDto payload) {
+    return new CustomLink(payload.getName(), payload.getUrl());
   }
 
   @Override
-  String getWritePermission() {
-    return MANAGE_CUSTOM_LINKS;
+  protected Optional<PermissionCheck> getReadPermission() {
+    return Optional.empty();
   }
 
   @Override
-  String getCollectionName() {
+  protected Optional<PermissionCheck> getWritePermission() {
+    return Optional.of(ConfigurationPermissions.custom(MANAGE_PERMISSION));
+  }
+
+  @Override
+  protected String getCollectionName() {
     return "customLinks";
+  }
+
+  @Override
+  public void enrich(HalEnricherContext context, HalAppender appender) {
+    createLinks(appender, () -> UriBuilder.fromUri(scmPathInfoStore.get().get().getApiRestUri()));
   }
 }
