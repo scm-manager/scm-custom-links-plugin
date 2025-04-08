@@ -15,6 +15,7 @@
  */
 
 import React, { FC, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AddButton,
   Column,
@@ -25,7 +26,7 @@ import {
   TextColumn,
   Title
 } from "@scm-manager/ui-components";
-import { useTranslation } from "react-i18next";
+import { useDocumentTitle } from "@scm-manager/ui-core";
 import { HalRepresentation, Link } from "@scm-manager/ui-types";
 import { useAddCustomLink, useCustomLinks, useDeleteCustomLink } from "./useCustomLinks";
 
@@ -64,6 +65,7 @@ const CustomLinksTable: FC<{ customLinks: CustomLink[] }> = ({ customLinks }) =>
 
 const GlobalConfig: FC<Props> = ({ link }) => {
   const [t] = useTranslation("plugins");
+  useDocumentTitle(t("scm-custom-links-plugin.settings.title"));
   const { data, error, isLoading } = useCustomLinks(link);
   const { addLink, error: addLinkError } = useAddCustomLink(link);
 
