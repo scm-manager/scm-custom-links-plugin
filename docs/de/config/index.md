@@ -2,9 +2,10 @@
 title: Benutzerdefinierte Links konfigurieren
 ---
 
-Über ein simples Formular können benutzerdefinierte Links angelegt, aktualisiert und innerhalb der Tabelle auch gelöscht werden.
-Sobald ein Link erstellt wurde, wird er in der Fußleiste in der Sektion "Information" angezeigt.
-Die Link-URL muss mit dem Protokoll wie z. B. `http://` oder `https://` starten, 
-da ansonsten ein relativer Link von dieser Instanz ausgehend erzeugt wird.
+Mit diesem Plugin können Sie eigene Links in die Fußzeile des SCM-Managers einfügen, damit alle Benutzer sie sehen können.
+Die Konfigurationsseite finden Sie im Bereich Administration. Dort können Sie Ihre Links über ein einfaches Formular erstellen, aktualisieren oder löschen.
+Sobald Sie einen Link erstellt haben, wird dieser sofort in der Fußzeile des SCM-Managers im Bereich "Informationen" angezeigt.
+Denken Sie daran, dass die URL Ihres Links mit einem Protokoll wie `http://` oder `https://` beginnen muss.
+Wenn Sie kein Protokoll angeben, wird ein relativer Link von Ihrer SCM-Manager-Instanz erstellt.
 
-![Config](assets/custom-links-config.png)
+![Formular zur Konfiguration](assets/custom-links-config.png)

@@ -2,9 +2,10 @@
 title: Custom Links Configuration
 ---
 
-Custom links can be created, updated and deleted using a simple form.
-Once a link is created, it will be displayed in the footer in the "Information" section.
-The link URL must start with the protocol such as `http://` or `https://`,
-otherwise a relative link will be created starting from this instance.
+This plugin lets you add your own links to the SCM-Manager footer, so all users can see them.
+You'll find the configuration page under the Administration section. There, you can easily create, update, or delete your links using a simple form.
+As soon as you create a link, it shows up immediately in the "Information" section of the SCM-Manager footer.
+Just remember, your link's URL needs to start with a protocol such as `http://` or `https://`.
+If you don't include one, it'll create a relative link from your SCM-Manager instance.
 
-![Config](assets/custom-links-config.png)
+![Configuration form](assets/custom-links-config.png)
