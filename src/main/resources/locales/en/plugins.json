@@ -13,7 +13,7 @@
       },
       "name": {
         "label": "Name",
-        "helpText": "Displayname of the link"
+        "helpText": "Display name of the link"
       },
       "url": {
         "label": "URL",
