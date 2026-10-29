@@ -14,15 +14,16 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { apiClient } from "@scm-manager/ui-components";
-import { HalRepresentation } from "@scm-manager/ui-types";
-import { useMutation, useQueryClient, useQuery } from "react-query";
-import { CustomLink } from "./GlobalConfig";
+import {apiClient} from "@scm-manager/ui-components";
+import {HalRepresentation} from "@scm-manager/ui-types";
+import {useMutation, useQueryClient, useQuery} from "@tanstack/react-query";
+import {CustomLink} from "./GlobalConfig";
 
 export const useCustomLinks = (link: string) => {
-  const { error, isLoading, data } = useQuery<HalRepresentation, Error>("custom-links", () =>
-    apiClient.get(link).then(res => res.json())
-  );
+  const {error, isLoading, data} = useQuery<HalRepresentation, Error>({
+    queryKey: ["custom-links"],
+    queryFn: () => apiClient.get(link).then(res => res.json()),
+  });
 
   return {
     error,
@@ -33,16 +34,19 @@ export const useCustomLinks = (link: string) => {
 
 export const useDeleteCustomLink = () => {
   const queryClient = useQueryClient();
-  const { mutate, isLoading, error } = useMutation<unknown, Error, string>(
-    link => {
-      return apiClient.delete(link);
-    },
-    {
-      onSuccess: () => {
-        return queryClient.invalidateQueries(["custom-links"]);
+  const {mutate, isPending: isLoading, error} = useMutation<unknown, Error, string>({
+    mutationFn:
+      link => {
+        return apiClient.delete(link);
       }
+    ,
+
+    onSuccess: () => {
+      return queryClient.invalidateQueries({queryKey: ["custom-links"]});
     }
-  );
+
+
+  })
   return {
     deleteLink: (link: string) => {
       mutate(link);
@@ -54,16 +58,15 @@ export const useDeleteCustomLink = () => {
 
 export const useAddCustomLink = (link: string) => {
   const queryClient = useQueryClient();
-  const { mutate, isLoading, error } = useMutation<unknown, Error, CustomLink>(
-    (customLink) => {
+  const {mutate, isPending: isLoading, error} = useMutation<unknown, Error, CustomLink>({
+    mutationFn: (customLink) => {
       return apiClient.post(link, customLink, "application/vnd.scmm-custom-links+json;v=2");
-    },
-    {
-      onSuccess: () => {
-        return queryClient.invalidateQueries(["custom-links"]);
-      }
     }
-  );
+    ,
+    onSuccess: () => {
+      return queryClient.invalidateQueries({queryKey: ["custom-links"]});
+    }
+  });
   return {
     addLink: (customLink: CustomLink) => {
       mutate(customLink);

@@ -19,7 +19,7 @@ import { binder } from "@scm-manager/ui-extensions";
 import GlobalConfig from "./GlobalConfig";
 import CustomLinksRenderer from "./CustomLinksRenderer";
 
-configurationBinder.bindGlobal(
+configurationBinder.bindAdminSetting(
   "/custom-links",
   "scm-custom-links-plugin.settings.navLink",
   "customLinksConfig",
