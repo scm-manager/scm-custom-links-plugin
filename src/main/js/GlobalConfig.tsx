@@ -16,16 +16,8 @@
 
 import React, { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  AddButton,
-  Column,
-  ErrorNotification,
-  Icon,
-  InputField,
-  Table,
-  TextColumn,
-  Title,
-} from "@scm-manager/ui-components";
+import { AddButton, ErrorNotification, Icon, InputField, Title } from "@scm-manager/ui-components";
+import { Table } from "@scm-manager/ui-core";
 import { HalRepresentation, Link } from "@scm-manager/ui-types";
 import { useAddCustomLink, useCustomLinks, useDeleteCustomLink } from "./useCustomLinks";
 
@@ -45,9 +37,9 @@ const CustomLinksTable: FC<{ customLinks: CustomLink[] }> = ({ customLinks }) =>
   return (
     <>
       <Table data={customLinks} emptyMessage={t("scm-custom-links-plugin.form.table.empty")}>
-        <TextColumn header={t("scm-custom-links-plugin.form.table.name")} dataKey="name" />
-        <TextColumn header={t("scm-custom-links-plugin.form.table.url")} dataKey="url" />
-        <Column header={t("")}>
+        <Table.TextColumn header={t("scm-custom-links-plugin.form.table.name")} dataKey="name" />
+        <Table.TextColumn header={t("scm-custom-links-plugin.form.table.url")} dataKey="url" />
+        <Table.Column header={t("")}>
           {(row: any) => (
             <Icon
               name="trash"
@@ -55,7 +47,7 @@ const CustomLinksTable: FC<{ customLinks: CustomLink[] }> = ({ customLinks }) =>
               title={t("scm-custom-links-plugin.form.table.deleteLink")}
             />
           )}
-        </Column>
+        </Table.Column>
       </Table>
       <ErrorNotification error={deleteError} />
     </>
